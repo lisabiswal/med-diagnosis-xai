@@ -41,19 +41,25 @@ def run_mock_inference(image: Image.Image):
 # The Inference Endpoint
 @app.post("/analyze", response_model=AnalysisResponse)
 async def analyze_image(file: UploadFile = File(...)):
-    # Validate file type
     if file.content_type not in ["image/jpeg", "image/png"]:
-        raise HTTPException(status_code=400, detail="Invalid image type. Please upload a JPEG or PNG.")
+        raise HTTPException(status_code=400, detail="Invalid image type.")
 
     start_time = time.time()
-
+    
+    # Generate a Unique Request ID
+    request_id = str(uuid.uuid4())
+    
     try:
-        # Read and open image
         contents = await file.read()
         image = Image.open(io.BytesIO(contents)).convert("RGB")
 
+        # Simulate the XAI Heatmap creation with the UUID
+        heatmap_filename = f"heatmap_{request_id}.png"
+        heatmap_rel_path = f"/static/heatmaps/{heatmap_filename}"
+        
+       
         # need to swap this with the real model call
-        label, score, heatmap = run_mock_inference(image)
+        label, score, _ = run_mock_inference(image)
 
         end_time = time.time()
         
@@ -61,12 +67,12 @@ async def analyze_image(file: UploadFile = File(...)):
             prediction=label,
             confidence=score,
             processing_time=round(end_time - start_time, 2),
-            heatmap_url=heatmap
+            heatmap_url=heatmap_rel_path  # unique URL
         )
 
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Inference Error: {str(e)}")
-
+        raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
+    
 # Health Check
 @app.get("/")
 def read_root():
