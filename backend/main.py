@@ -7,9 +7,15 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from PIL import Image
 import io
-from model import predict
+from model import predict, model, transform, DEVICE
+from xai import GradCAM, save_gradcam_image
+from explain import generate_explanation
 
 app = FastAPI(title="Medical XAI API")
+
+# Initialize GradCAM
+# target_layer = model.layer4 for ResNet18
+gcam = GradCAM(model, model.layer4)
 
 # To also run without cuda
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -25,6 +31,7 @@ class AnalysisResponse(BaseModel):
     confidence: float
     processing_time: float
     heatmap_url: str | None = None
+    explanation: str | None = None
 
 # Mock Inference Engine
 # def run_mock_inference(image: Image.Image):
@@ -59,8 +66,19 @@ async def analyze_image(file: UploadFile = File(...)):
         heatmap_rel_path = f"/static/heatmaps/{heatmap_filename}"
         
        
-        # need to swap this with the real model call
+        # Real model call
         label, score = predict(image)
+
+        # Generate Grad-CAM Heatmap
+        input_tensor = transform(image).unsqueeze(0).to(DEVICE)
+        heatmap, _ = gcam.generate_heatmap(input_tensor)
+        
+        # Save Heatmap Overlay
+        heatmap_full_path = os.path.join("static", "heatmaps", heatmap_filename)
+        save_gradcam_image(heatmap, image, heatmap_full_path)
+
+        # Generate Rule-Based Explanation
+        explanation_text = generate_explanation(heatmap, label, score)
 
         end_time = time.time()
         
@@ -68,7 +86,8 @@ async def analyze_image(file: UploadFile = File(...)):
             prediction=label,
             confidence=score,
             processing_time=round(end_time - start_time, 2),
-            heatmap_url=heatmap_rel_path  # unique URL
+            heatmap_url=heatmap_rel_path,
+            explanation=explanation_text
         )
 
     except Exception as e:
