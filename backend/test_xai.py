@@ -1,6 +1,7 @@
 import torch
 from model import model, transform, DEVICE, predict
 from xai import GradCAM, save_gradcam_image
+from explain import generate_explanation
 from PIL import Image
 import os
 
@@ -31,8 +32,11 @@ def test_gradcam():
     os.makedirs("static/heatmaps", exist_ok=True)
     save_path = "static/heatmaps/test_verification.png"
     save_gradcam_image(heatmap, image, save_path)
-    
     print(f"Heatmap saved to {save_path}")
+    
+    # Generate Explanation
+    explanation = generate_explanation(heatmap, label, score)
+    print(f"Explanation: {explanation}")
     
     # Clean up hooks
     gcam.remove_hooks()
