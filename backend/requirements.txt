@@ -6,3 +6,5 @@ pillow
 numpy
 tqdm
 python-multipart
+opencv-python
+matplotlib
