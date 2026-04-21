@@ -7,6 +7,7 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from PIL import Image
 import io
+from model import predict
 
 app = FastAPI(title="Medical XAI API")
 
@@ -26,17 +27,17 @@ class AnalysisResponse(BaseModel):
     heatmap_url: str | None = None
 
 # Mock Inference Engine
-def run_mock_inference(image: Image.Image):
-    time.sleep(2) 
+# def run_mock_inference(image: Image.Image):
+#     time.sleep(2) 
     
-    # Simulating a medical result
-    prediction = "Abnormal (Potential Fracture Detected)"
-    confidence = 0.9423
+#     # Simulating a medical result
+#     prediction = "Abnormal (Potential Fracture Detected)"
+#     confidence = 0.9423
     
-    # Placeholder for the XAI heatmap URL
-    mock_heatmap_path = "/static/heatmaps/sample_heatmap.png" 
+#     # Placeholder for the XAI heatmap URL
+#     mock_heatmap_path = "/static/heatmaps/sample_heatmap.png" 
     
-    return prediction, confidence, mock_heatmap_path
+#     return prediction, confidence, mock_heatmap_path
 
 # The Inference Endpoint
 @app.post("/analyze", response_model=AnalysisResponse)
@@ -59,7 +60,7 @@ async def analyze_image(file: UploadFile = File(...)):
         
        
         # need to swap this with the real model call
-        label, score, _ = run_mock_inference(image)
+        label, score = predict(image)
 
         end_time = time.time()
         
